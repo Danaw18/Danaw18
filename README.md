@@ -1,36 +1,44 @@
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class WeatherApp {
 
     public static void main(String[] args) {
-        
+
         String apiKey = "21955c947745726b172511cb7546e33b\\n";
-        String city = "New York"; 
+        String city = "New York";
 
         try {
-            OkHttpClient client = new OkHttpClient();
             String apiUrl = "https://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=" + apiKey;
-            Request request = new Request.Builder()
-                    .url(apiUrl)
-                    .build();
 
-            Response response = client.newCall(request).execute();
-            ResponseBody responseBody = response.body();
-            if (responseBody != null) {
-                String jsonData = responseBody.string();
+            URL url = new URL(apiUrl);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+
+            int responseCode = connection.getResponseCode();
+            if (responseCode == 200) {
+                BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                String inputLine;
+                StringBuilder content = new StringBuilder();
+                while ((inputLine = in.readLine()) != null) {
+                    content.append(inputLine);
+                }
+                in.close();
+
                 JSONParser parser = new JSONParser();
-                Object obj = parser.parse(jsonData);
-                JSONObject json = (JSONObject) obj;
+                JSONObject json = (JSONObject) parser.parse(content.toString());
 
-              
+
                 double temperature = Double.parseDouble(json.get("main.temp").toString());
                 double humidity = Double.parseDouble(json.get("main.humidity").toString());
-                String conditions = ((JSONObject) ((org.json.simple.JSONArray) json.get("weather")).get(0)).get("description").toString();
+                JSONArray weatherArray = (JSONArray) json.get("weather");
+                String conditions = ((JSONObject) weatherArray.get(0)).get("description").toString();
 
                 System.out.println("Weather in " + city);
                 System.out.println("Temperature: " + temperature + "°C");
@@ -44,7 +52,9 @@ public class WeatherApp {
         }
     }
 }
-//client.newCall(request).execute(). This sends the request to the OpenWeatherMap API.
-//The JSONParser is used to parse the JSON data from jsonData and convert it into a JSON object.
+//we create a URL object and open an HttpURLConnection to connect to the API URL. we also specify the request method as GET.
+//we use the JSON-Simple library to parse the JSON data into a JSONObject
+//extract specific weather information such as temperature, humidity, and conditions from the JSON data.
+
 
 
