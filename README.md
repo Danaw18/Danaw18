@@ -1,76 +1,50 @@
-import java.util.HashMap;
-import java.util.Map;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 
-class WeatherData {
-    private double temperature;
-    private int humidity;
-    private double windSpeed;
-    private String conditions;
+public class WeatherApp {
 
-    public WeatherData(double temperature, int humidity, double windSpeed, String conditions) {
-        this.temperature = temperature;
-        this.humidity = humidity;
-        this.windSpeed = windSpeed;
-        this.conditions = conditions;
-    }
-
-    public double getTemperature() {
-        return temperature;
-    }
-
-    public int getHumidity() {
-        return humidity;
-    }
-
-    public double getWindSpeed() {
-        return windSpeed;
-    }
-
-    public String getConditions() {
-        return conditions;
-    }
-
-
-
-
-}
-
-
-class WeatherDataAdapter {
-
-    public WeatherData convertDataFromExternalAPI(Map<String, Object> externalData) {
-
-        double temperature = (double) externalData.get("temp");
-        int humidity = (int) externalData.get("humidity");
-        double windSpeed = (double) externalData.get("wind_speed");
-        String conditions = (String) externalData.get("weather_condition");
-
-
-        WeatherData weatherData = new WeatherData(temperature, humidity, windSpeed, conditions);
-
-        return weatherData;
-    }
-}
-
-public class ssss {
     public static void main(String[] args) {
+        
+        String apiKey = "21955c947745726b172511cb7546e33b\\n";
+        String city = "New York"; 
 
-        Map<String, Object> externalData = new HashMap<>();
-        externalData.put("temp", 25.5);
-        externalData.put("humidity", 60);
-        externalData.put("wind_speed", 10.2);
-        externalData.put("weather_condition", "sunny");
+        try {
+            OkHttpClient client = new OkHttpClient();
+            String apiUrl = "https://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=" + apiKey;
+            Request request = new Request.Builder()
+                    .url(apiUrl)
+                    .build();
 
+            Response response = client.newCall(request).execute();
+            ResponseBody responseBody = response.body();
+            if (responseBody != null) {
+                String jsonData = responseBody.string();
+                JSONParser parser = new JSONParser();
+                Object obj = parser.parse(jsonData);
+                JSONObject json = (JSONObject) obj;
 
-        WeatherDataAdapter adapter = new WeatherDataAdapter();
-        WeatherData standardizedData = adapter.convertDataFromExternalAPI(externalData);
+              
+                double temperature = Double.parseDouble(json.get("main.temp").toString());
+                double humidity = Double.parseDouble(json.get("main.humidity").toString());
+                String conditions = ((JSONObject) ((org.json.simple.JSONArray) json.get("weather")).get(0)).get("description").toString();
 
-
-        System.out.println("Temperature: " + standardizedData.getTemperature());
-        System.out.println("Humidity: " + standardizedData.getHumidity());
-        System.out.println("Wind Speed: " + standardizedData.getWindSpeed());
-        System.out.println("Conditions: " + standardizedData.getConditions());
+                System.out.println("Weather in " + city);
+                System.out.println("Temperature: " + temperature + "°C");
+                System.out.println("Humidity: " + humidity + "%");
+                System.out.println("Conditions: " + conditions);
+            } else {
+                System.out.println("Error fetching weather data.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
+//client.newCall(request).execute(). This sends the request to the OpenWeatherMap API.
+//The JSONParser is used to parse the JSON data from jsonData and convert it into a JSON object.
 
-    //convertDataFromExternalAPI  method that converts data from an external API into a standardized format
+
