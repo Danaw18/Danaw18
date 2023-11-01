@@ -1,55 +1,65 @@
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Scanner;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import java.text.DecimalFormat;
 
-public class WeatherApp {
-
+public class weatherApp {
     public static void main(String[] args) {
+        String apiKey = "21955c947745726b172511cb7546e33b";
+        String city = "";
 
-        String apiKey = "21955c947745726b172511cb7546e33b\\n";
-        String city = "New York";
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Enter the name of the city: ");
+        city = scanner.nextLine();
+        scanner.close();
 
         try {
-            String apiUrl = "https://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=" + apiKey;
-
-            URL url = new URL(apiUrl);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
-
-            int responseCode = connection.getResponseCode();
-            if (responseCode == 200) {
-                BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                String inputLine;
-                StringBuilder content = new StringBuilder();
-                while ((inputLine = in.readLine()) != null) {
-                    content.append(inputLine);
-                }
-                in.close();
-
-                JSONParser parser = new JSONParser();
-                JSONObject json = (JSONObject) parser.parse(content.toString());
-
-
-                double temperature = Double.parseDouble(json.get("main.temp").toString());
-                double humidity = Double.parseDouble(json.get("main.humidity").toString());
-                JSONArray weatherArray = (JSONArray) json.get("weather");
-                String conditions = ((JSONObject) weatherArray.get(0)).get("description").toString();
-
-                System.out.println("Weather in " + city);
-                System.out.println("Temperature: " + temperature + "°C");
-                System.out.println("Humidity: " + humidity + "%");
-                System.out.println("Conditions: " + conditions);
-            } else {
-                System.out.println("Error fetching weather data.");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+            String weatherData = fetchWeatherData(apiKey, city);
+            displayWeatherData(weatherData);
+        } catch (IOException e) {
+            System.out.println("An error occurred: " + e.getMessage());
         }
+    }
+
+    public static String fetchWeatherData(String apiKey, String city) throws IOException {
+        String baseUrl = "http://api.openweathermap.org/data/2.5/weather?";
+        String completeUrl = baseUrl + "appid=" + apiKey + "&q=" + city;
+        URL url = new URL(completeUrl);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+        InputStream inputStream = connection.getInputStream();
+        Scanner scanner = new Scanner(inputStream);
+
+        StringBuilder responseData = new StringBuilder();
+        while (scanner.hasNext()) {
+            responseData.append(scanner.next());
+        }
+
+        scanner.close();
+        connection.disconnect();
+
+        return responseData.toString();
+    }
+
+    public static void displayWeatherData(String weatherData) {
+        JsonParser jsonParser = new JsonParser();
+        JsonObject jsonObject = jsonParser.parse(weatherData).getAsJsonObject();
+
+        double temperature = jsonObject.getAsJsonObject("main").get("temp").getAsDouble() - 273.15;
+        int humidity = jsonObject.getAsJsonObject("main").get("humidity").getAsInt();
+        String weatherDescription = jsonObject.getAsJsonArray("weather")
+                .get(0).getAsJsonObject().get("description").getAsString();
+
+        DecimalFormat df = new DecimalFormat("#.##");
+        String formattedTemperature = df.format(temperature);
+
+        System.out.println("Temperature: " + formattedTemperature + "°C");
+        System.out.println("Humidity: " + humidity + "%");
+        System.out.println("Weather description: " + weatherDescription);
     }
 }
 //we create a URL object and open an HttpURLConnection to connect to the API URL. we also specify the request method as GET.
